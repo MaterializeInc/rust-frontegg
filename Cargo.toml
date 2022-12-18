@@ -1,0 +1,36 @@
+[package]
+name = "frontegg"
+authors = ["Materialize, Inc."]
+readme = "README.md"
+description = "An async API client for the Frontegg user management service."
+documentation = "https://docs.rs/frontegg"
+license = "Apache-2.0"
+categories = ["api-bindings", "web-programming"]
+keywords = ["frontegg", "front", "egg", "api", "sdk"]
+repository = "https://github.com/MaterializeInc/rust-frontegg"
+version = "0.1.0"
+rust-version = "1.65"
+edition = "2021"
+
+[dependencies]
+async-stream = "0.3.3"
+futures-core = "0.3.25"
+once_cell = "1.16.0"
+reqwest = { version = "0.11.13", features = ["json"] }
+serde = { version = "1.0.151", features = ["derive"] }
+serde_json = "1.0.91"
+time = { version = "0.3.17", features = ["serde", "serde-human-readable"] }
+tokio = { version = "1.23.0" }
+uuid = { version = "1.2.2", features = ["serde", "v4"] }
+
+[dev-dependencies]
+futures = "0.3.25"
+test-log = { version = "0.2.11", default-features = false, features = ["trace"] }
+tokio = { version = "1.23.0", features = ["macros"] }
+tokio-stream = "0.1.11"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
