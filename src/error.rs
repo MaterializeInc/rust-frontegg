@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fmt;
+
 use reqwest::StatusCode;
 
 /// An error returned by a [`Client`].
@@ -26,6 +28,17 @@ pub enum Error {
     Api(ApiError),
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Transport(e) => write!(f, "frontegg error: transport: {e}"),
+            Error::Api(e) => write!(f, "frontegg error: api: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 /// An error returned by the Frontegg API.
 #[derive(Debug, Clone)]
 pub struct ApiError {
@@ -34,6 +47,19 @@ pub struct ApiError {
     /// A detailed message about the error conditions.
     pub messages: Vec<String>,
 }
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} (status {})",
+            self.messages.join(","),
+            self.status_code
+        )
+    }
+}
+
+impl std::error::Error for ApiError {}
 
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Error {
