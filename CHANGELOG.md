@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Imbue `Error` and `ApiError` with an `std::error::Error` implementation.
+
 ## 0.1.0 - 2022-12-18
 
 Initial release.
