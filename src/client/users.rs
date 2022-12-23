@@ -89,6 +89,7 @@ pub struct CreatedUser {
     /// The email for the user.
     pub email: String,
     /// Arbitrary metadata that is attached to the user.
+    #[serde(default = "crate::serde::empty_json_object")]
     #[serde(with = "crate::serde::nested_json")]
     pub metadata: serde_json::Value,
     /// The roles to which this user belongs.
@@ -111,6 +112,7 @@ pub struct User {
     /// The email for the user.
     pub email: String,
     /// Arbitrary metadata that is attached to the user.
+    #[serde(default = "crate::serde::empty_json_object")]
     #[serde(with = "crate::serde::nested_json")]
     pub metadata: serde_json::Value,
     /// The tenants to which this user belongs.

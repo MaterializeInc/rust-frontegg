@@ -82,3 +82,7 @@ pub mod nested_json {
         deserializer.deserialize_any(NestedJson)
     }
 }
+
+pub fn empty_json_object() -> serde_json::Value {
+    serde_json::Value::Object(serde_json::Map::new())
+}
