@@ -47,6 +47,7 @@ pub struct Tenant {
     /// The name of the tenant.
     pub name: String,
     /// Arbitrary metadata that is attached to the tenant.
+    #[serde(default = "crate::serde::empty_json_object")]
     #[serde(with = "crate::serde::nested_json")]
     pub metadata: serde_json::Value,
     /// The time at which the tenant was created.

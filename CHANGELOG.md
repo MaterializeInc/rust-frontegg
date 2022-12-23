@@ -10,6 +10,8 @@ Versioning].
 ## [Unreleased] <!-- #release:date -->
 
 * Imbue `Error` and `ApiError` with an `std::error::Error` implementation.
+* Handle API responses that do not include the `metadata` field in `Tenant`,
+  `User`, and `CreatedUser` responses.
 
 ## 0.1.0 - 2022-12-18
 
