@@ -7,10 +7,10 @@ An async Rust API client for the [Frontegg] user management service.
 ```
 # Cargo.toml
 [dependencies]
-frontegg = "0.1.0"
+frontegg = "0.1.1"
 ```
 
-**[View documentation.](https://docs.rs/frontegg/0.1.0)**
+**[View documentation.](https://docs.rs/frontegg/0.1.1)**
 
 [Frontegg]: https://frontegg.com
 

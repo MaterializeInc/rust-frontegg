@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.1.1] - 2022-12-23
+
 * Imbue `Error` and `ApiError` with an `std::error::Error` implementation.
 * Handle API responses that do not include the `metadata` field in `Tenant`,
   `User`, and `CreatedUser` responses.
@@ -18,7 +20,8 @@ Versioning].
 Initial release.
 
 <!-- #release:next-url -->
-[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.0
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
