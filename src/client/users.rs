@@ -101,6 +101,55 @@ pub struct CreatedUser {
     pub created_at: OffsetDateTime,
 }
 
+/// The subset of a [`User`] returned by a webhook `frontegg.user.*` event
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebhookUser {
+    /// The ID of the user.
+    pub id: Uuid,
+    /// The name of the user.
+    pub name: Option<String>,
+    /// The email for the user.
+    pub email: String,
+    /// Arbitrary metadata that is attached to the user.
+    #[serde(default = "crate::serde::empty_json_object")]
+    #[serde(with = "crate::serde::nested_json")]
+    pub metadata: serde_json::Value,
+    /// The roles to which this user belongs.
+    pub roles: Vec<Role>,
+    /// The permissions which this user holds.
+    pub permissions: Vec<Permission>,
+    /// The time at which the user was created.
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    /// The activation status of the user for the tenant.
+    pub activated_for_tenant: Option<bool>,
+    /// The locked status of the user.
+    pub is_locked: Option<bool>,
+    /// The enttity managing the user.
+    pub managed_by: String,
+    /// The mfa enrollment status of the user.
+    pub mfa_enrolled: bool,
+    /// The mfa bypass status of the user.
+    pub mfa_bypass: Option<bool>,
+    /// The phone_number of the user.
+    pub phone_number: Option<String>,
+    /// The profile picture url of the user.
+    pub profile_picture_url: Option<String>,
+    /// The provider of the user.
+    pub provider: String,
+    /// The sub of the user.
+    pub sub: Uuid,
+    /// The ID of the tenant of the user.
+    pub tenant_id: Uuid,
+    /// The IDs of all tenants for the user.
+    pub tenant_ids: Option<Vec<Uuid>>,
+    /// The tenants to which this user belongs.
+    pub tenants: Option<Vec<WebhookTenantBinding>>,
+    /// The verified status of the user.
+    pub verified: Option<bool>,
+}
+
 /// A Frontegg user.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -120,6 +169,18 @@ pub struct User {
     /// The time at which the user was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
+}
+
+/// Binds a [`User`] to a [`Tenant`] for webhook `frontegg.user.*` events
+///
+/// [`Tenant`]: crate::client::tenant::Tenant
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebhookTenantBinding {
+    /// The ID of the tenant.
+    pub tenant_id: Uuid,
+    /// The roles to which the user belongs in this tenant.
+    pub roles: Option<Vec<Role>>,
 }
 
 /// Binds a [`User`] to a [`Tenant`].
