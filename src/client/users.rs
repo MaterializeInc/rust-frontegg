@@ -101,7 +101,7 @@ pub struct CreatedUser {
     pub created_at: OffsetDateTime,
 }
 
-/// The subset of a [`User`] returned by a webhook `frontegg.user.*` event
+/// The subset of a [`User`] returned by a `frontegg.user.*` webhook event
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebhookUser {
@@ -171,7 +171,7 @@ pub struct User {
     pub created_at: OffsetDateTime,
 }
 
-/// Binds a [`User`] to a [`Tenant`] for webhook `frontegg.user.*` events
+/// Binds a [`User`] to a [`Tenant`] for a `frontegg.user.*` webhook event
 ///
 /// [`Tenant`]: crate::client::tenant::Tenant
 #[derive(Debug, Clone, Deserialize)]
