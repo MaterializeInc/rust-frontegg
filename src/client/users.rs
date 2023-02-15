@@ -126,7 +126,7 @@ pub struct WebhookUser {
     pub activated_for_tenant: Option<bool>,
     /// The locked status of the user.
     pub is_locked: Option<bool>,
-    /// The enttity managing the user.
+    /// The entity managing the user.
     pub managed_by: String,
     /// The mfa enrollment status of the user.
     pub mfa_enrolled: bool,
@@ -142,9 +142,9 @@ pub struct WebhookUser {
     pub sub: Uuid,
     /// The ID of the tenant of the user.
     pub tenant_id: Uuid,
-    /// The IDs of all tenants for the user.
+    /// The IDs of all tenants for the user. Missing on frontegg.user.disabledMFA events.
     pub tenant_ids: Option<Vec<Uuid>>,
-    /// The tenants to which this user belongs.
+    /// The tenants to which this user belongs. Missing on frontegg.user.disabledMFA events.
     pub tenants: Option<Vec<WebhookTenantBinding>>,
     /// The verified status of the user.
     pub verified: Option<bool>,
@@ -179,7 +179,7 @@ pub struct User {
 pub struct WebhookTenantBinding {
     /// The ID of the tenant.
     pub tenant_id: Uuid,
-    /// The roles to which the user belongs in this tenant.
+    /// The roles to which the user belongs in this tenant. Missing on frontegg.user.enrolledMFA events.
     pub roles: Option<Vec<Role>>,
 }
 
