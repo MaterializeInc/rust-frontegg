@@ -63,6 +63,8 @@ pub struct Tenant {
 
 impl Client {
     /// Lists all tenants in the workspace.
+    ///
+    /// The returned vector is sorted by tenant ID.
     pub async fn list_tenants(&self) -> Result<Vec<Tenant>, Error> {
         let req = self.build_request(Method::GET, TENANT_PATH);
         let res = self.send_request(req).await?;
