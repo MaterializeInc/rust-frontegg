@@ -71,7 +71,6 @@ async fn test_tenants_and_users() {
             metadata: json!({
                 "tenant_number": 1,
             }),
-            ..Default::default()
         })
         .await
         .unwrap();
@@ -80,13 +79,14 @@ async fn test_tenants_and_users() {
             id: tenant_id_2,
             name: "test tenant 2",
             metadata: json!(42),
-            ..Default::default()
         })
         .await
         .unwrap();
 
     // Verify tenant properties.
-    let tenants = client.list_tenants().await.unwrap();
+    let mut tenants = client.list_tenants().await.unwrap();
+    // Sort tenants by name to match order. Default ordering is by tenant ID.
+    tenants.sort_by(|a, b| a.name.cmp(&b.name));
     assert_eq!(tenants.len(), 2);
     assert_eq!(tenants[0].id, tenant_id_1);
     assert_eq!(tenants[1].id, tenant_id_2);
@@ -106,8 +106,8 @@ async fn test_tenants_and_users() {
             let created_user = client
                 .create_user(&UserRequest {
                     tenant_id: tenant.id,
-                    name: &*name,
-                    email: &*email,
+                    name: &name,
+                    email: &email,
                     skip_invite_email: true,
                     ..Default::default()
                 })
