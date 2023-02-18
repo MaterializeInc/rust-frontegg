@@ -9,6 +9,9 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Add the `WebhookUser` and `WebhookTenantBinding` to represent the user object
+  delivered by the `frontegg.user.*` webhook events types.
+
 ## [0.1.1] - 2022-12-23
 
 * Imbue `Error` and `ApiError` with an `std::error::Error` implementation.
