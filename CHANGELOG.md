@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.2.0] - 2023-02-18
+
 * Add the `WebhookUser` and `WebhookTenantBinding` to represent the user object
   delivered by the `frontegg.user.*` webhook events types.
 
@@ -23,7 +25,8 @@ Versioning].
 Initial release.
 
 <!-- #release:next-url -->
-[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.0
 
