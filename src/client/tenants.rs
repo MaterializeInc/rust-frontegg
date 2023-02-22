@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use reqwest::Method;
+use reqwest::{Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::serde::Empty;
 use crate::util::StrIteratorExt;
-use crate::{Client, Error};
+use crate::{error, Client, Error};
 
 const TENANT_PATH: [&str; 4] = ["tenants", "resources", "tenants", "v1"];
 
@@ -77,6 +77,16 @@ impl Client {
         let req = req.json(tenant);
         let res = self.send_request(req).await?;
         Ok(res)
+    }
+
+    /// Get a tenant by ID.
+    pub async fn get_tenant(&self, id: Uuid) -> Result<Tenant, Error> {
+        let req = self.build_request(Method::GET, TENANT_PATH.chain_one(id));
+        let mut res: Vec<Tenant> = self.send_request(req).await?;
+        res.pop().ok_or(Error::Api(error::ApiError {
+            status_code: StatusCode::NOT_FOUND,
+            messages: vec!["Tenant not found".to_string()],
+        }))
     }
 
     /// Deletes a tenant by ID.

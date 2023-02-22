@@ -29,12 +29,13 @@ use std::env;
 
 use futures::stream::TryStreamExt;
 use once_cell::sync::Lazy;
+use reqwest::StatusCode;
 use serde_json::json;
 use test_log::test;
 use tracing::info;
 use uuid::Uuid;
 
-use frontegg::{Client, ClientConfig, TenantRequest, UserListConfig, UserRequest};
+use frontegg::{ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserRequest};
 
 pub static CLIENT_ID: Lazy<String> =
     Lazy::new(|| env::var("FRONTEGG_CLIENT_ID").expect("missing FRONTEGG_CLIENT_ID"));
@@ -96,6 +97,19 @@ async fn test_tenants_and_users() {
     assert_eq!(tenants[1].metadata, json!(42));
     assert_eq!(tenants[0].deleted_at, None);
     assert_eq!(tenants[1].deleted_at, None);
+
+    // Verify a single tenant can be fetched by ID
+    let tenant = client.get_tenant(tenants[0].id).await.unwrap();
+    assert_eq!(tenant.id, tenants[0].id);
+
+    // Verify an unknown tenant raises a suitable error
+    let tenant_result = client
+        .get_tenant(uuid::uuid!("00000000-0000-0000-0000-000000000000"))
+        .await;
+    match tenant_result {
+        Err(Error::Api(ApiError { status_code, .. })) if status_code == StatusCode::NOT_FOUND => (),
+        _ => panic!("unexpected response: {tenant_result:?}"),
+    };
 
     // Create three users in each tenant.
     let mut users = vec![];
