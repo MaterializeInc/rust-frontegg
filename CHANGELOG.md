@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Support getting a tenant by ID.
+
 ## [0.2.0] - 2023-02-18
 
 * Add the `WebhookUser` and `WebhookTenantBinding` to represent the user object

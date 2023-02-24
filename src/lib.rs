@@ -48,4 +48,4 @@ pub use client::users::{
 };
 pub use client::Client;
 pub use config::{ClientBuilder, ClientConfig};
-pub use error::Error;
+pub use error::{ApiError, Error};

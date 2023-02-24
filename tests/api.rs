@@ -29,17 +29,20 @@ use std::env;
 
 use futures::stream::TryStreamExt;
 use once_cell::sync::Lazy;
+use reqwest::StatusCode;
 use serde_json::json;
 use test_log::test;
 use tracing::info;
 use uuid::Uuid;
 
-use frontegg::{Client, ClientConfig, TenantRequest, UserListConfig, UserRequest};
+use frontegg::{ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserRequest};
 
 pub static CLIENT_ID: Lazy<String> =
     Lazy::new(|| env::var("FRONTEGG_CLIENT_ID").expect("missing FRONTEGG_CLIENT_ID"));
 pub static SECRET_KEY: Lazy<String> =
     Lazy::new(|| env::var("FRONTEGG_SECRET_KEY").expect("missing FRONTEGG_SECRET_KEY"));
+
+const TENANT_NAME_PREFIX: &str = "test tenant";
 
 fn new_client() -> Client {
     Client::new(ClientConfig {
@@ -50,8 +53,10 @@ fn new_client() -> Client {
 
 async fn delete_existing_tenants(client: &Client) {
     for tenant in client.list_tenants().await.unwrap() {
-        info!(%tenant.id, "deleting existing tenant");
-        client.delete_tenant(tenant.id).await.unwrap();
+        if tenant.name.starts_with(TENANT_NAME_PREFIX) {
+            info!(%tenant.id, "deleting existing tenant");
+            client.delete_tenant(tenant.id).await.unwrap();
+        }
     }
 }
 
@@ -67,7 +72,7 @@ async fn test_tenants_and_users() {
     client
         .create_tenant(&TenantRequest {
             id: tenant_id_1,
-            name: "test tenant 1",
+            name: &format!("{TENANT_NAME_PREFIX} 1"),
             metadata: json!({
                 "tenant_number": 1,
             }),
@@ -77,25 +82,44 @@ async fn test_tenants_and_users() {
     client
         .create_tenant(&TenantRequest {
             id: tenant_id_2,
-            name: "test tenant 2",
+            name: &format!("{TENANT_NAME_PREFIX} 2"),
             metadata: json!(42),
         })
         .await
         .unwrap();
 
     // Verify tenant properties.
-    let mut tenants = client.list_tenants().await.unwrap();
+    let mut tenants: Vec<_> = client
+        .list_tenants()
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|e| e.name.starts_with(TENANT_NAME_PREFIX))
+        .collect();
     // Sort tenants by name to match order. Default ordering is by tenant ID.
     tenants.sort_by(|a, b| a.name.cmp(&b.name));
     assert_eq!(tenants.len(), 2);
     assert_eq!(tenants[0].id, tenant_id_1);
     assert_eq!(tenants[1].id, tenant_id_2);
-    assert_eq!(tenants[0].name, "test tenant 1");
-    assert_eq!(tenants[1].name, "test tenant 2");
+    assert_eq!(tenants[0].name, format!("{TENANT_NAME_PREFIX} 1"));
+    assert_eq!(tenants[1].name, format!("{TENANT_NAME_PREFIX} 2"));
     assert_eq!(tenants[0].metadata, json!({"tenant_number": 1}));
     assert_eq!(tenants[1].metadata, json!(42));
     assert_eq!(tenants[0].deleted_at, None);
     assert_eq!(tenants[1].deleted_at, None);
+
+    // Verify a single tenant can be fetched by ID
+    let tenant = client.get_tenant(tenants[0].id).await.unwrap();
+    assert_eq!(tenant.id, tenants[0].id);
+
+    // Verify an unknown tenant raises a suitable error
+    let tenant_result = client
+        .get_tenant(uuid::uuid!("00000000-0000-0000-0000-000000000000"))
+        .await;
+    match tenant_result {
+        Err(Error::Api(ApiError { status_code, .. })) if status_code == StatusCode::NOT_FOUND => (),
+        _ => panic!("unexpected response: {tenant_result:?}"),
+    };
 
     // Create three users in each tenant.
     let mut users = vec![];
@@ -140,7 +164,7 @@ async fn test_tenants_and_users() {
             .try_collect()
             .await
             .unwrap();
-        assert_eq!(expected, actual);
+        assert!(expected.difference(&actual).collect::<Vec<_>>().is_empty());
     }
 
     // Ensure that the user list can be filtered to a single tenant.
@@ -164,9 +188,12 @@ async fn test_tenants_and_users() {
     {
         let users: Vec<_> = client
             .list_users(Default::default())
-            .try_collect()
+            .try_collect::<Vec<_>>()
             .await
-            .unwrap();
+            .unwrap()
+            .into_iter()
+            .filter(|u| u.email.starts_with("frontegg-test-"))
+            .collect();
         assert_eq!(users.len(), 0);
     }
 }
