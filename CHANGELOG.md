@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.3.0] - 2023-02-26
+
 * Add the `Client::get_tenant` method to get a tenant by ID.
 
 * Uniformly derive `Serialize` and `Deserialize` on all API types, even if the
@@ -32,7 +34,8 @@ Versioning].
 Initial release.
 
 <!-- #release:next-url -->
-[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.0...v0.1.0
