@@ -62,7 +62,7 @@ impl UserListConfig {
 }
 
 /// The subset of [`User`] used in create requests.
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserRequest<'a> {
     /// The ID of the tenant to which the user will belong.
@@ -79,7 +79,7 @@ pub struct UserRequest<'a> {
 }
 
 /// The subset of a [`User`] returned by [`Client::create_user`].
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatedUser {
     /// The ID of the user.
@@ -90,7 +90,7 @@ pub struct CreatedUser {
     pub email: String,
     /// Arbitrary metadata that is attached to the user.
     #[serde(default = "crate::serde::empty_json_object")]
-    #[serde(with = "crate::serde::nested_json")]
+    #[serde(deserialize_with = "crate::serde::nested_json::deserialize")]
     pub metadata: serde_json::Value,
     /// The roles to which this user belongs.
     pub roles: Vec<Role>,
@@ -102,7 +102,7 @@ pub struct CreatedUser {
 }
 
 /// The subset of a [`User`] returned by a `frontegg.user.*` webhook event
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebhookUser {
     /// The ID of the user.
@@ -113,7 +113,7 @@ pub struct WebhookUser {
     pub email: String,
     /// Arbitrary metadata that is attached to the user.
     #[serde(default = "crate::serde::empty_json_object")]
-    #[serde(with = "crate::serde::nested_json")]
+    #[serde(deserialize_with = "crate::serde::nested_json::deserialize")]
     pub metadata: serde_json::Value,
     /// The roles to which this user belongs.
     pub roles: Vec<Role>,
@@ -151,7 +151,7 @@ pub struct WebhookUser {
 }
 
 /// A Frontegg user.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     /// The ID of the user.
@@ -162,7 +162,7 @@ pub struct User {
     pub email: String,
     /// Arbitrary metadata that is attached to the user.
     #[serde(default = "crate::serde::empty_json_object")]
-    #[serde(with = "crate::serde::nested_json")]
+    #[serde(deserialize_with = "crate::serde::nested_json::deserialize")]
     pub metadata: serde_json::Value,
     /// The tenants to which this user belongs.
     pub tenants: Vec<TenantBinding>,
@@ -174,7 +174,7 @@ pub struct User {
 /// Binds a [`User`] to a [`Tenant`] for a `frontegg.user.*` webhook event
 ///
 /// [`Tenant`]: crate::client::tenant::Tenant
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebhookTenantBinding {
     /// The ID of the tenant.
@@ -186,7 +186,7 @@ pub struct WebhookTenantBinding {
 /// Binds a [`User`] to a [`Tenant`].
 ///
 /// [`Tenant`]: crate::client::tenant::Tenant
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TenantBinding {
     /// The ID of the tenant.

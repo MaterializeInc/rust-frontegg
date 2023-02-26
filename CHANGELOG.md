@@ -9,7 +9,12 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
-* Support getting a tenant by ID.
+* Add the `Client::get_tenant` method to get a tenant by ID.
+
+* Uniformly derive `Serialize` and `Deserialize` on all API types, even if the
+  type is not serialized or deserialized by `Client`. The idea is to allow
+  downstream users to serialize and deserialize these types for their own
+  purposes (e.g., to store them on disk).
 
 ## [0.2.0] - 2023-02-18
 
