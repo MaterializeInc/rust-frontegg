@@ -25,7 +25,7 @@ use crate::{error, Client, Error};
 const TENANT_PATH: [&str; 4] = ["tenants", "resources", "tenants", "v1"];
 
 /// The subset of [`Tenant`] used in create requests.
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TenantRequest<'a> {
     /// The ID of the tenant.
@@ -38,7 +38,7 @@ pub struct TenantRequest<'a> {
 }
 
 /// A Frontegg tenant.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tenant {
     /// The ID of the tenant.
@@ -48,7 +48,7 @@ pub struct Tenant {
     pub name: String,
     /// Arbitrary metadata that is attached to the tenant.
     #[serde(default = "crate::serde::empty_json_object")]
-    #[serde(with = "crate::serde::nested_json")]
+    #[serde(deserialize_with = "crate::serde::nested_json::deserialize")]
     pub metadata: serde_json::Value,
     /// The time at which the tenant was created.
     #[serde(with = "time::serde::rfc3339")]
