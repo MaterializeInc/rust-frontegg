@@ -26,14 +26,17 @@
 
 use std::collections::HashSet;
 use std::env;
+use std::time::Duration;
 
 use futures::stream::TryStreamExt;
 use once_cell::sync::Lazy;
 use reqwest::StatusCode;
+use reqwest_retry::policies::ExponentialBackoff;
 use serde_json::json;
 use test_log::test;
 use tracing::info;
 use uuid::Uuid;
+use wiremock::{matchers, Mock, MockServer, ResponseTemplate};
 
 use frontegg::{ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserRequest};
 
@@ -60,6 +63,69 @@ async fn delete_existing_tenants(client: &Client) {
     }
 }
 
+/// Tests that errors are retried automatically by the client for read API calls
+/// but not for write API calls.
+#[test(tokio::test)]
+async fn test_retries_with_mock_server() {
+    // Start a mock Frontegg API server and a client configured to target that
+    // server. The retry policy disables backoff to speed up the tests.
+    const MAX_RETRIES: u32 = 3;
+    let server = MockServer::start().await;
+    let client = Client::builder()
+        .with_vendor_endpoint(server.uri().parse().unwrap())
+        .with_retry_policy(
+            ExponentialBackoff::builder()
+                .retry_bounds(Duration::from_millis(1), Duration::from_millis(1))
+                .build_with_max_retries(MAX_RETRIES),
+        )
+        .build(ClientConfig {
+            client_id: "".into(),
+            secret_key: "".into(),
+        });
+
+    // Register authentication handler.
+    let mock = Mock::given(matchers::path("/auth/vendor"))
+        .and(matchers::method("POST"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string("{\"token\":\"test\", \"expiresIn\":2687784526}"),
+        )
+        .expect(1)
+        .named("auth");
+    server.register(mock).await;
+
+    // Register a mock for the `get_tenant` call that returns a 429 response
+    // code and ensure the client repeatedly retries the API call until giving
+    // up after `MAX_RETRIES` retries and returning the error.
+    let mock = Mock::given(matchers::method("GET"))
+        .and(matchers::path_regex("/tenants/.*"))
+        .respond_with(ResponseTemplate::new(429))
+        .expect(u64::from(MAX_RETRIES) + 1)
+        .named("get tenants");
+    server.register(mock).await;
+    let res = client.get_tenant(Uuid::new_v4()).await;
+    assert!(res.is_err());
+
+    // Register a mock for the `create_tenant` call that returns a 429 response
+    // code and ensure the client only tries the API call once.
+    let mock = Mock::given(matchers::method("POST"))
+        .and(matchers::path_regex("/tenants/.*"))
+        .respond_with(ResponseTemplate::new(429))
+        .expect(1)
+        .named("post tenants");
+    server.register(mock).await;
+    let _ = client
+        .create_tenant(&TenantRequest {
+            id: Uuid::new_v4(),
+            name: &format!("{TENANT_NAME_PREFIX} 1"),
+            metadata: json!({
+                "tenant_number": 1,
+            }),
+        })
+        .await;
+}
+
+/// Tests basic functionality of creating and retrieving tenants and users.
 #[test(tokio::test)]
 async fn test_tenants_and_users() {
     // Set up.
@@ -146,8 +212,8 @@ async fn test_tenants_and_users() {
             // the same properties.
             let user = client.get_user(created_user.id).await.unwrap();
             assert_eq!(created_user.id, user.id);
-            assert_eq!(created_user.name, user.name);
-            assert_eq!(created_user.email, user.email);
+            assert_eq!(user.name, name);
+            assert_eq!(user.email, email);
             assert_eq!(user.tenants.len(), 1);
             assert_eq!(user.tenants[0].tenant_id, tenant.id);
 

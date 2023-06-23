@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Automatically retry read-only HTTP requests.
+
 ## [0.3.0] - 2023-02-26
 
 * Add the `Client::get_tenant` method to get a tenant by ID.

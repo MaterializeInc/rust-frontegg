@@ -9,7 +9,7 @@ categories = ["api-bindings", "web-programming"]
 keywords = ["frontegg", "front", "egg", "api", "sdk"]
 repository = "https://github.com/MaterializeInc/rust-frontegg"
 version = "0.3.0"
-rust-version = "1.65"
+rust-version = "1.68.2"
 edition = "2021"
 
 [dependencies]
@@ -17,6 +17,8 @@ async-stream = "0.3.3"
 futures-core = "0.3.25"
 once_cell = "1.16.0"
 reqwest = { version = "0.11.13", features = ["json"] }
+reqwest-middleware = "0.2.2"
+reqwest-retry = "0.2.2"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.91"
 time = { version = "0.3.17", features = ["serde", "serde-human-readable"] }
@@ -30,6 +32,7 @@ tokio = { version = "1.23.0", features = ["macros"] }
 tokio-stream = "0.1.11"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+wiremock = "0.5.19"
 
 [package.metadata.docs.rs]
 all-features = true
