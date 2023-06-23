@@ -17,6 +17,8 @@ use std::time::Duration;
 
 use once_cell::sync::Lazy;
 use reqwest::Url;
+use reqwest_middleware::ClientWithMiddleware;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
 use crate::Client;
 
@@ -37,12 +39,14 @@ pub struct ClientConfig {
 /// A builder for a [`Client`].
 pub struct ClientBuilder {
     vendor_endpoint: Url,
+    retry_policy: Option<ExponentialBackoff>,
 }
 
 impl Default for ClientBuilder {
     fn default() -> ClientBuilder {
         ClientBuilder {
             vendor_endpoint: DEFAULT_VENDOR_ENDPOINT.clone(),
+            retry_policy: Some(ExponentialBackoff::builder().build_with_max_retries(5)),
         }
     }
 }
@@ -56,6 +60,12 @@ impl ClientBuilder {
             .timeout(Duration::from_secs(60))
             .build()
             .unwrap();
+        let inner: ClientWithMiddleware = match self.retry_policy {
+            Some(policy) => reqwest_middleware::ClientBuilder::new(inner)
+                .with(RetryTransientMiddleware::new_with_policy(policy))
+                .build(),
+            None => reqwest_middleware::ClientBuilder::new(inner).build(),
+        };
         Client {
             inner,
             client_id: config.client_id,

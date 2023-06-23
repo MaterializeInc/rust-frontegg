@@ -15,7 +15,8 @@
 
 use std::time::{Duration, SystemTime};
 
-use reqwest::{Method, RequestBuilder, Url};
+use reqwest::{Method, Url};
+use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -38,7 +39,7 @@ const AUTH_VENDOR_PATH: [&str; 2] = ["auth", "vendor"];
 /// [`Arc`]: std::sync::Arc
 #[derive(Debug)]
 pub struct Client {
-    pub(crate) inner: reqwest::Client,
+    pub(crate) inner: ClientWithMiddleware,
     pub(crate) client_id: String,
     pub(crate) secret_key: String,
     pub(crate) vendor_endpoint: Url,

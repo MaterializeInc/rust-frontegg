@@ -234,8 +234,10 @@ impl Client {
     pub async fn create_user(&self, user: &UserRequest<'_>) -> Result<CreatedUser, Error> {
         let req = self.build_request(Method::POST, USER_PATH);
         let req = req.tenant(user.tenant_id);
+        println!("{:?}", user);
         let req = req.json(user);
         let res = self.send_request(req).await?;
+        println!("{:?}", res);
         Ok(res)
     }
 
