@@ -173,7 +173,7 @@ pub struct User {
 
 /// Binds a [`User`] to a [`Tenant`] for a `frontegg.user.*` webhook event
 ///
-/// [`Tenant`]: crate::client::tenant::Tenant
+/// [`Tenant`]: crate::client::tenants::Tenant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebhookTenantBinding {

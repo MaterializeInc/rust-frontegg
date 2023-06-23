@@ -15,7 +15,8 @@
 
 use std::time::{Duration, SystemTime};
 
-use reqwest::{Method, RequestBuilder, Url};
+use reqwest::{Method, Url};
+use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -38,7 +39,8 @@ const AUTH_VENDOR_PATH: [&str; 2] = ["auth", "vendor"];
 /// [`Arc`]: std::sync::Arc
 #[derive(Debug)]
 pub struct Client {
-    pub(crate) inner: reqwest::Client,
+    pub(crate) client_retryable: ClientWithMiddleware,
+    pub(crate) client_non_retryable: ClientWithMiddleware,
     pub(crate) client_id: String,
     pub(crate) secret_key: String,
     pub(crate) vendor_endpoint: Url,
@@ -67,7 +69,14 @@ impl Client {
             .expect("builder validated URL can be a base")
             .clear()
             .extend(path);
-        self.inner.request(method, url)
+        match method {
+            // GET and HEAD requests are idempotent and we can safely retry
+            // them without fear of duplicating data.
+            Method::GET | Method::HEAD => self.client_retryable.request(method, url),
+            // All other requests are assumed to be mutating and therefore
+            // we leave it to the caller to retry them.
+            _ => self.client_non_retryable.request(method, url),
+        }
     }
 
     async fn send_request<T>(&self, req: RequestBuilder) -> Result<T, Error>

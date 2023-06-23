@@ -16,7 +16,7 @@
 use std::fmt;
 use std::iter;
 
-use reqwest::RequestBuilder;
+use reqwest_middleware::RequestBuilder;
 use uuid::Uuid;
 
 pub trait RequestBuilderExt {
