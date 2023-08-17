@@ -15,6 +15,7 @@
 
 use reqwest::{Method, StatusCode};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -94,5 +95,36 @@ impl Client {
         let req = self.build_request(Method::DELETE, TENANT_PATH.chain_one(id));
         let _: Empty = self.send_request(req).await?;
         Ok(())
+    }
+
+    /// Set tenant metadata with an optional key
+    ///
+    /// This does not remove existing keys from the object if omitted.
+    pub async fn set_tenant_metadata(
+        &self,
+        id: Uuid,
+        metadata: &serde_json::Value,
+    ) -> Result<Tenant, Error> {
+        let req = self
+            .build_request(
+                Method::POST,
+                TENANT_PATH.chain_one(id).chain_one("metadata"),
+            )
+            .json(&json!({ "metadata": metadata }));
+        let res = self.send_request(req).await?;
+        Ok(res)
+    }
+
+    /// Remove a key/value from a tenant's metadata
+    pub async fn delete_tenant_metadata(&self, id: Uuid, key: &str) -> Result<Tenant, Error> {
+        let req = self.build_request(
+            Method::DELETE,
+            TENANT_PATH
+                .chain_one(id)
+                .chain_one("metadata")
+                .chain_one(key),
+        );
+        let res = self.send_request(req).await?;
+        Ok(res)
     }
 }

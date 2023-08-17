@@ -9,6 +9,9 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Add the `Client::set_tenant_metadata` and `Client::delete_tenant_metadata`
+  methods to mutate tenant metadata.
+
 ## [0.4.0] - 2023-06-27
 
 * Automatically retry read-only HTTP requests.
