@@ -178,6 +178,46 @@ async fn test_tenants_and_users() {
     let tenant = client.get_tenant(tenants[0].id).await.unwrap();
     assert_eq!(tenant.id, tenants[0].id);
 
+    // Verify an individual key can be added to tenant metadata
+    client
+        .set_tenant_metadata(
+            tenants[0].id,
+            &json!({
+                "tenant_name": tenants[0].name,
+            }),
+        )
+        .await
+        .unwrap();
+    let tenant = client.get_tenant(tenants[0].id).await.unwrap();
+    assert_eq!(
+        tenant.metadata,
+        json!({"tenant_name": tenant.name, "tenant_number": 1})
+    );
+
+    // Verify an individual key within tenant metadata can be edited
+    let set_tenant = client
+        .set_tenant_metadata(tenants[0].id, &json!({"tenant_name": "set test"}))
+        .await
+        .unwrap();
+    assert_eq!(
+        set_tenant.metadata,
+        json!({"tenant_name": "set test", "tenant_number": 1})
+    );
+    let tenant = client.get_tenant(tenants[0].id).await.unwrap();
+    assert_eq!(
+        tenant.metadata,
+        json!({"tenant_name": "set test", "tenant_number": 1})
+    );
+
+    // Verify an individual key-value pair within tenant metadata can be deleted
+    let delete_tenant = client
+        .delete_tenant_metadata(tenants[0].id, "tenant_name")
+        .await
+        .unwrap();
+    assert_eq!(delete_tenant.metadata, json!({"tenant_number": 1}));
+    let tenant = client.get_tenant(tenants[0].id).await.unwrap();
+    assert_eq!(tenant.metadata, json!({"tenant_number": 1}));
+
     // Verify an unknown tenant raises a suitable error
     let tenant_result = client
         .get_tenant(uuid::uuid!("00000000-0000-0000-0000-000000000000"))
