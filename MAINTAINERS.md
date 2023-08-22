@@ -2,8 +2,8 @@
 
 ## Releasing a new version
 
-```
+```shell
 cargo install cargo-release
-cargo release
-cargo release -x
+cargo release <LEVEL|VERSION>
+cargo release <LEVEL|VERSION> -x
 ```
