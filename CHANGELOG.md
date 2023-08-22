@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.5.0] - 2023-08-22
+
 * Add the `Client::set_tenant_metadata` and `Client::delete_tenant_metadata`
   methods to mutate tenant metadata.
 
@@ -41,7 +43,8 @@ Versioning].
 Initial release.
 
 <!-- #release:next-url -->
-[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.1.1...v0.2.0
