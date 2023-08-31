@@ -121,6 +121,7 @@ async fn test_retries_with_mock_server() {
             metadata: json!({
                 "tenant_number": 1,
             }),
+            ..Default::default()
         })
         .await;
 }
@@ -142,6 +143,8 @@ async fn test_tenants_and_users() {
             metadata: json!({
                 "tenant_number": 1,
             }),
+            creator_name: Some("tenant 1"),
+            creator_email: Some("creator@tenant1.com"),
         })
         .await
         .unwrap();
@@ -150,6 +153,7 @@ async fn test_tenants_and_users() {
             id: tenant_id_2,
             name: &format!("{TENANT_NAME_PREFIX} 2"),
             metadata: json!(42),
+            ..Default::default()
         })
         .await
         .unwrap();
@@ -171,6 +175,10 @@ async fn test_tenants_and_users() {
     assert_eq!(tenants[1].name, format!("{TENANT_NAME_PREFIX} 2"));
     assert_eq!(tenants[0].metadata, json!({"tenant_number": 1}));
     assert_eq!(tenants[1].metadata, json!(42));
+    assert_eq!(tenants[0].creator_name, Some("tenant 1".into()));
+    assert_eq!(tenants[1].creator_name, None);
+    assert_eq!(tenants[0].creator_email, Some("creator@tenant1.com".into()));
+    assert_eq!(tenants[1].creator_email, None);
     assert_eq!(tenants[0].deleted_at, None);
     assert_eq!(tenants[1].deleted_at, None);
 

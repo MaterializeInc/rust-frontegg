@@ -36,6 +36,10 @@ pub struct TenantRequest<'a> {
     pub name: &'a str,
     /// Arbitrary metadata to attach to the tenant.
     pub metadata: serde_json::Value,
+    /// The name of the person who created the tenant.
+    pub creator_name: Option<&'a str>,
+    /// The email of the person who created the tenant.
+    pub creator_email: Option<&'a str>,
 }
 
 /// A Frontegg tenant.
@@ -51,6 +55,10 @@ pub struct Tenant {
     #[serde(default = "crate::serde::empty_json_object")]
     #[serde(deserialize_with = "crate::serde::nested_json::deserialize")]
     pub metadata: serde_json::Value,
+    /// The name of the person who created the tenant.
+    pub creator_name: Option<String>,
+    /// The email of the person who created the tenant.
+    pub creator_email: Option<String>,
     /// The time at which the tenant was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
