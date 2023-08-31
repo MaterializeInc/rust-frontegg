@@ -9,6 +9,9 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Add `Tenant::creator_name`, `Tenant::creator_email`,
+  `TenantRequest::creator_name`, and `TenantRequest::creator_email`.
+
 ## [0.5.0] - 2023-08-22
 
 * Add the `Client::set_tenant_metadata` and `Client::delete_tenant_metadata`
