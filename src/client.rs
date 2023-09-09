@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[cfg(feature = "python")]
+use std::future::Future;
 use std::time::{Duration, SystemTime};
 
 use reqwest::{Method, Url};
@@ -38,6 +40,7 @@ const AUTH_VENDOR_PATH: [&str; 2] = ["auth", "vendor"];
 ///
 /// [`Arc`]: std::sync::Arc
 #[derive(Debug)]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct Client {
     pub(crate) client_retryable: ClientWithMiddleware,
     pub(crate) client_non_retryable: ClientWithMiddleware,
@@ -45,6 +48,8 @@ pub struct Client {
     pub(crate) secret_key: String,
     pub(crate) vendor_endpoint: Url,
     pub(crate) auth: Mutex<Option<Auth>>,
+    #[cfg(feature = "python")]
+    pub(crate) rt: Option<tokio::runtime::Runtime>,
 }
 
 impl Client {
@@ -57,6 +62,14 @@ impl Client {
     /// optional parameters.
     pub fn builder() -> ClientBuilder {
         ClientBuilder::default()
+    }
+
+    #[cfg(feature = "python")]
+    pub(crate) fn block_on_runtime<F: Future>(&self, future: F) -> F::Output {
+        self.rt
+            .as_ref()
+            .expect("No Tokio runtime associated with Client instance. This shouldn't happen.")
+            .block_on(future)
     }
 
     fn build_request<P>(&self, method: Method, path: P) -> RequestBuilder
@@ -164,4 +177,23 @@ impl Client {
 pub struct Auth {
     token: String,
     refresh_at: SystemTime,
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl Client {
+    #[new]
+    fn py_new(client_id: String, secret_key: String) -> Self {
+        let config = ClientConfig {
+            client_id,
+            secret_key,
+        };
+        // Since we want the Python code to be driving this
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Could not initialize Tokio runtime");
+
+        ClientBuilder::default().build_on_runtime(config, rt)
+    }
 }

@@ -20,6 +20,7 @@ use uuid::Uuid;
 /// A Frontegg role.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct Role {
     /// The ID of the role.
     pub id: Uuid,
@@ -44,6 +45,7 @@ pub struct Role {
 /// A Frontegg permission.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct Permission {
     /// The ID of the permission.
     pub id: Uuid,

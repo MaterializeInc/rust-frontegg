@@ -1,0 +1,12 @@
+[project]
+name = "frontegg_api"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = "frontegg_api"
+features = ["python"]
+# all-features = false
+compatibility = "manylinux2014"
