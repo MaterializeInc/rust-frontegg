@@ -20,6 +20,8 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::serde::Empty;
+#[cfg(feature = "python")]
+use crate::util::py;
 use crate::util::StrIteratorExt;
 use crate::{error, Client, Error};
 
@@ -45,6 +47,7 @@ pub struct TenantRequest<'a> {
 /// A Frontegg tenant.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct Tenant {
     /// The ID of the tenant.
     #[serde(rename = "tenantId")]
@@ -68,6 +71,82 @@ pub struct Tenant {
     /// The time at which the tenant was deleted.
     #[serde(with = "time::serde::rfc3339::option")]
     pub deleted_at: Option<OffsetDateTime>,
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl Tenant {
+    fn __repr__(&self) -> String {
+        format!("Tenant(id='{}', name={})", self.id, self.name)
+    }
+
+    #[getter]
+    fn id(&self, _py: pyo3::Python) -> pyo3::PyResult<pyo3::PyObject> {
+        py::PyUuid(self.id).try_into()
+    }
+
+    #[getter]
+    fn name<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyString> {
+        Ok(pyo3::types::PyString::new(py, &self.name))
+    }
+
+    #[getter]
+    fn metadata<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<pyo3::PyObject> {
+        let res = py::json_to_object(py, &self.metadata)?;
+        Ok(res)
+    }
+
+    #[getter]
+    fn creator_name<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<pyo3::PyObject> {
+        match &self.creator_name {
+            None => Ok(py.None()),
+            Some(cn) => {
+                let s = pyo3::types::PyString::new(py, &cn);
+                let o: pyo3::Py<pyo3::PyAny> = s.into();
+                Ok(o)
+            }
+        }
+    }
+
+    #[getter]
+    fn creator_email<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<pyo3::PyObject> {
+        match &self.creator_email {
+            None => Ok(py.None()),
+            Some(ce) => {
+                let s = pyo3::types::PyString::new(py, &ce);
+                let o: pyo3::Py<pyo3::PyAny> = s.into();
+                Ok(o)
+            }
+        }
+    }
+
+    #[getter]
+    fn created_at<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyDateTime> {
+        pyo3::types::PyDateTime::from_timestamp(py, self.created_at.unix_timestamp() as f64, None)
+    }
+
+    #[getter]
+    fn updated_at<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyDateTime> {
+        pyo3::types::PyDateTime::from_timestamp(py, self.created_at.unix_timestamp() as f64, None)
+    }
+
+    #[getter]
+    fn deleted_at<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<pyo3::PyObject> {
+        match self.deleted_at {
+            None => Ok(py.None()),
+            Some(dt) => {
+                let py_dt =
+                    pyo3::types::PyDateTime::from_timestamp(py, dt.unix_timestamp() as f64, None);
+                match py_dt {
+                    Ok(t) => {
+                        let o: pyo3::Py<pyo3::PyAny> = t.into();
+                        Ok(o)
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+        }
+    }
 }
 
 impl Client {
@@ -134,5 +213,99 @@ impl Client {
         );
         let res = self.send_request(req).await?;
         Ok(res)
+    }
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl Client {
+    #[pyo3(name = "list_tenants")]
+    fn py_list_tenants<'a>(&self, _py: pyo3::Python<'a>) -> pyo3::PyResult<Vec<Tenant>> {
+        let tenants_result = self.block_on_runtime(async { self.list_tenants().await });
+        tenants_result.map_err(|e| pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)))
+    }
+
+    #[pyo3(name = "create_tenant")]
+    fn py_create_tenant<'a>(
+        &self,
+        py: pyo3::Python<'a>,
+        id: pyo3::PyObject,
+        name: &'a str,
+        metadata: Option<pyo3::PyObject>,
+        creator_name: Option<&'a str>,
+        creator_email: Option<&'a str>,
+    ) -> pyo3::PyResult<Tenant> {
+        let id: py::PyUuid = id.as_ref(py).try_into()?;
+        let req = TenantRequest {
+            id: id.0,
+            name,
+            metadata: match metadata {
+                Some(m) => py::object_to_json(py, m.as_ref(py))?,
+                None => serde_json::Value::Null,
+            },
+            creator_name,
+            creator_email,
+        };
+        let res = self.block_on_runtime(async { self.create_tenant(&req).await });
+        res.map_err(|e| pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)))
+    }
+
+    #[pyo3(name = "get_tenant")]
+    fn py_get_tenant(&self, py: pyo3::Python, id: pyo3::PyObject) -> pyo3::PyResult<Tenant> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let res = self.block_on_runtime(async { self.get_tenant(i.0).await });
+        res.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("Tenant not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
+    }
+
+    #[pyo3(name = "delete_tenant")]
+    fn py_delete_tenant(&self, py: pyo3::Python, id: pyo3::PyObject) -> pyo3::PyResult<()> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let res = self.block_on_runtime(async { self.delete_tenant(i.0).await });
+        res.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("Tenant not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
+    }
+
+    #[pyo3(name = "set_tenant_metadata")]
+    fn py_set_tenant_metadata(
+        &self,
+        py: pyo3::Python,
+        id: pyo3::PyObject,
+        metadata: pyo3::PyObject,
+    ) -> pyo3::PyResult<Tenant> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let m: serde_json::Value = py::object_to_json(py, metadata.as_ref(py))?;
+        let res = self.block_on_runtime(async { self.set_tenant_metadata(i.0, &m).await });
+        res.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("Tenant not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
+    }
+
+    #[pyo3(name = "delete_tenant_metadata")]
+    fn py_delete_tenant_metadata(
+        &self,
+        py: pyo3::Python,
+        id: pyo3::PyObject,
+        key: &str,
+    ) -> pyo3::PyResult<Tenant> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let res = self.block_on_runtime(async { self.delete_tenant_metadata(i.0, key).await });
+        res.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("Tenant not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
     }
 }

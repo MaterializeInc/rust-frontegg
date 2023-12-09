@@ -49,3 +49,23 @@ pub use client::users::{
 pub use client::Client;
 pub use config::{ClientBuilder, ClientConfig};
 pub use error::{ApiError, Error};
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "python")] {
+        use pyo3::prelude::*;
+
+        pyo3::create_exception!(frontegg_api, NotFoundError, pyo3::exceptions::PyException, "Not found");
+
+        #[pymodule]
+        fn frontegg_api(py: Python, m: &PyModule) -> PyResult<()> {
+            m.add_class::<Client>()?;
+            m.add_class::<Permission>()?;
+            m.add_class::<Role>()?;
+            m.add_class::<Tenant>()?;
+            m.add_class::<User>()?;
+            m.add("NotFoundError", py.get_type::<NotFoundError>())?;
+            Ok(())
+        }
+
+    }
+}

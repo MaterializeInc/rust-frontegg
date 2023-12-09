@@ -14,8 +14,12 @@
 // limitations under the License.
 
 use async_stream::try_stream;
+#[cfg(feature = "python")]
+use futures::stream::TryStreamExt;
 use futures_core::stream::Stream;
 use reqwest::Method;
+#[cfg(feature = "python")]
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -24,6 +28,8 @@ use crate::client::roles::{Permission, Role};
 use crate::client::Client;
 use crate::error::Error;
 use crate::serde::{Empty, Paginated};
+#[cfg(feature = "python")]
+use crate::util::py;
 use crate::util::{RequestBuilderExt, StrIteratorExt};
 
 const USER_PATH: [&str; 4] = ["identity", "resources", "users", "v1"];
@@ -153,6 +159,7 @@ pub struct WebhookUser {
 /// A Frontegg user.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct User {
     /// The ID of the user.
     pub id: Uuid,
@@ -176,6 +183,7 @@ pub struct User {
 /// [`Tenant`]: crate::client::tenants::Tenant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct WebhookTenantBinding {
     /// The ID of the tenant.
     pub tenant_id: Uuid,
@@ -188,11 +196,33 @@ pub struct WebhookTenantBinding {
 /// [`Tenant`]: crate::client::tenant::Tenant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "python", pyo3::pyclass(frozen))]
 pub struct TenantBinding {
     /// The ID of the tenant.
     pub tenant_id: Uuid,
     /// The roles to which the user belongs in this tenant.
     pub roles: Vec<Role>,
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl TenantBinding {
+    fn __repr__(&self) -> String {
+        format!(
+            "TenantBinding(id='{}', roles={:?})",
+            self.tenant_id, self.roles
+        )
+    }
+
+    #[getter]
+    fn tenant_id(&self, _py: pyo3::Python) -> pyo3::PyResult<pyo3::PyObject> {
+        py::PyUuid(self.tenant_id).try_into()
+    }
+
+    #[getter]
+    fn roles<'a>(&self, _py: pyo3::Python<'a>) -> pyo3::PyResult<Vec<Role>> {
+        Ok(self.roles.clone())
+    }
 }
 
 impl Client {
@@ -251,5 +281,134 @@ impl Client {
         let req = self.build_request(Method::DELETE, USER_PATH.chain_one(id));
         let _: Empty = self.send_request(req).await?;
         Ok(())
+    }
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl Client {
+    #[pyo3(name = "list_users")]
+    fn py_list_users<'a>(
+        &self,
+        py: pyo3::Python,
+        tenant_id: Option<pyo3::PyObject>,
+        page_size: Option<u64>,
+    ) -> pyo3::PyResult<Vec<User>> {
+        let mut config = UserListConfig::default();
+        if let Some(tenant_id) = tenant_id {
+            let i: py::PyUuid = tenant_id.as_ref(py).try_into()?;
+            config = config.tenant_id(i.0);
+        }
+        if let Some(page_size) = page_size {
+            config = config.page_size(page_size);
+        }
+        let users_result =
+            self.block_on_runtime(async { self.list_users(config).try_collect().await });
+        users_result.map_err(|e| pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)))
+    }
+
+    #[pyo3(name = "create_user")]
+    fn py_create_user<'a>(
+        &self,
+        py: pyo3::Python<'a>,
+        tenant_id: pyo3::PyObject,
+        name: Option<&'a str>,
+        email: Option<&'a str>,
+        metadata: Option<pyo3::PyObject>,
+        skip_invite_email: Option<bool>,
+    ) -> pyo3::PyResult<User> {
+        let tenant_id: py::PyUuid = tenant_id.as_ref(py).try_into()?;
+        let req = UserRequest {
+            tenant_id: tenant_id.0,
+            name: name.unwrap_or(""),
+            email: email.unwrap_or(""),
+            metadata: match metadata {
+                Some(m) => py::object_to_json(py, m.as_ref(py))?,
+                None => serde_json::Value::Null,
+            },
+            skip_invite_email: skip_invite_email.unwrap_or(false),
+        };
+
+        let res = self.block_on_runtime(async { self.create_user(&req).await });
+        match res {
+            Err(e) => Err(pyo3::exceptions::PyAssertionError::new_err(format!(
+                "{:?}",
+                e
+            ))),
+            Ok(cu) => {
+                Ok(User {
+                    id: cu.id,
+                    name: cu.name,
+                    email: cu.email,
+                    metadata: cu.metadata,
+                    // TODO: This is a departure from the Rust API. We should fix it.
+                    tenants: vec![],
+                    created_at: cu.created_at,
+                })
+            }
+        }
+    }
+
+    #[pyo3(name = "get_user")]
+    fn py_get_user(&self, py: pyo3::Python, id: pyo3::PyObject) -> pyo3::PyResult<User> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let user_result = self.block_on_runtime(async { self.get_user(i.0).await });
+        user_result.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("User not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
+    }
+
+    #[pyo3(name = "delete_user")]
+    fn py_delete_user(&self, py: pyo3::Python, id: pyo3::PyObject) -> pyo3::PyResult<()> {
+        let i: py::PyUuid = id.as_ref(py).try_into()?;
+        let res = self.block_on_runtime(async { self.delete_user(i.0).await });
+        res.map_err(|e| match e {
+            Error::Api(a) if a.status_code == StatusCode::NOT_FOUND => {
+                crate::NotFoundError::new_err("User not found")
+            }
+            _ => pyo3::exceptions::PyAssertionError::new_err(format!("{:?}", e)),
+        })
+    }
+}
+
+#[cfg(feature = "python")]
+#[pyo3::pymethods]
+impl User {
+    fn __repr__(&self) -> String {
+        format!("User(id='{}', email={})", self.id, self.email)
+    }
+
+    #[getter]
+    fn id(&self, _py: pyo3::Python) -> pyo3::PyResult<pyo3::PyObject> {
+        py::PyUuid(self.id).try_into()
+    }
+
+    #[getter]
+    fn name<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyString> {
+        Ok(pyo3::types::PyString::new(py, &self.name))
+    }
+
+    #[getter]
+    fn email<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyString> {
+        Ok(pyo3::types::PyString::new(py, &self.email))
+    }
+
+    #[getter]
+    fn metadata<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<pyo3::PyObject> {
+        let res = py::json_to_object(py, &self.metadata)?;
+        Ok(res)
+    }
+
+    #[getter]
+    fn tenants<'a>(&self, _py: pyo3::Python<'a>) -> pyo3::PyResult<Vec<TenantBinding>> {
+        Ok(self.tenants.clone())
+    }
+
+    #[getter]
+    fn created_at<'a>(&self, py: pyo3::Python<'a>) -> pyo3::PyResult<&'a pyo3::types::PyDateTime> {
+        pyo3::types::PyDateTime::from_timestamp(py, self.created_at.unix_timestamp() as f64, None)
     }
 }

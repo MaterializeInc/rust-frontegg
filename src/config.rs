@@ -92,6 +92,19 @@ impl ClientBuilder {
             secret_key: config.secret_key,
             vendor_endpoint: self.vendor_endpoint,
             auth: Default::default(),
+            #[cfg(feature = "python")]
+            rt: None,
         }
+    }
+
+    #[cfg(feature = "python")]
+    pub(crate) fn build_on_runtime(
+        self,
+        config: ClientConfig,
+        rt: tokio::runtime::Runtime,
+    ) -> Client {
+        let mut client = self.build(config);
+        client.rt = Some(rt);
+        client
     }
 }
