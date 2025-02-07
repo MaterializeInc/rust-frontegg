@@ -21,6 +21,8 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
+use crate::util::RequestBuilderExt;
+
 use crate::error::ApiError;
 use crate::{ClientBuilder, ClientConfig, Error};
 

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::util::RequestBuilderExt;
 use async_stream::try_stream;
 use futures_core::stream::Stream;
 use reqwest::Method;
@@ -24,7 +25,7 @@ use crate::client::roles::{Permission, Role};
 use crate::client::Client;
 use crate::error::Error;
 use crate::serde::{Empty, Paginated};
-use crate::util::{RequestBuilderExt, StrIteratorExt};
+use crate::util::StrIteratorExt;
 
 const USER_PATH: [&str; 4] = ["identity", "resources", "users", "v1"];
 const VENDOR_USER_PATH: [&str; 5] = ["identity", "resources", "vendor-only", "users", "v1"];

@@ -9,6 +9,14 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.7.0] - 2024-02-07
+
+* Update reqwest to 0.12.12
+* Update reqwest-middleware to 0.4.0
+* Update reqwest-retry to 0.7.0
+
+
+
 ## [0.6.0] - 2023-08-31
 
 * Add `Tenant::creator_name`, `Tenant::creator_email`,

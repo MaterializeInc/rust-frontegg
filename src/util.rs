@@ -16,16 +16,35 @@
 use std::fmt;
 use std::iter;
 
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use reqwest_middleware::RequestBuilder;
+use serde::Serialize;
 use uuid::Uuid;
 
 pub trait RequestBuilderExt {
     fn tenant(self, uuid: Uuid) -> RequestBuilder;
+    fn json<T: Serialize + ?Sized>(self, json: &T) -> RequestBuilder;
 }
 
 impl RequestBuilderExt for RequestBuilder {
     fn tenant(self, uuid: Uuid) -> RequestBuilder {
-        self.header("Frontegg-Tenant-Id", uuid.to_string())
+        self.header(
+            "Frontegg-Tenant-Id",
+            HeaderValue::from_str(&uuid.to_string())
+                .expect("UUID should always be valid header value"),
+        )
+    }
+
+    fn json<T: Serialize + ?Sized>(self, json: &T) -> RequestBuilder {
+        // Serialize the JSON payload
+        let body = serde_json::to_vec(json).expect("Failed to serialize JSON payload");
+
+        // Create headers
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+        // Add the body and headers
+        self.headers(headers).body(body)
     }
 }
 
