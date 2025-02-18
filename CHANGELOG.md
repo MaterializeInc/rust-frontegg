@@ -9,7 +9,7 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
-## [0.7.0] - 2024-02-07
+## [0.7.0] - 2024-02-18
 
 * Update reqwest to 0.12.12
 * Update reqwest-middleware to 0.4.0
