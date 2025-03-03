@@ -13,4 +13,3 @@ frontegg = "0.6.0"
 **[View documentation.](https://docs.rs/frontegg/0.6.0)**
 
 [Frontegg]: https://frontegg.com
-
