@@ -9,7 +9,7 @@ categories = ["api-bindings", "web-programming"]
 keywords = ["frontegg", "front", "egg", "api", "sdk"]
 repository = "https://github.com/MaterializeInc/rust-frontegg"
 version = "0.7.0"
-rust-version = "1.75.0"
+rust-version = "1.81.0"
 edition = "2021"
 
 [dependencies]
