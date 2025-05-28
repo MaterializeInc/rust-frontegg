@@ -38,7 +38,10 @@ use tracing::info;
 use uuid::Uuid;
 use wiremock::{matchers, Mock, MockServer, ResponseTemplate};
 
-use frontegg::{ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserRequest};
+use frontegg::{
+    ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserListPartConfig,
+    UserRequest,
+};
 
 pub static CLIENT_ID: Lazy<String> =
     Lazy::new(|| env::var("FRONTEGG_CLIENT_ID").expect("missing FRONTEGG_CLIENT_ID"));
@@ -48,10 +51,16 @@ pub static SECRET_KEY: Lazy<String> =
 const TENANT_NAME_PREFIX: &str = "test tenant";
 
 fn new_client() -> Client {
-    Client::new(ClientConfig {
-        client_id: CLIENT_ID.clone(),
-        secret_key: SECRET_KEY.clone(),
-    })
+    Client::builder()
+        .with_retry_policy(
+            ExponentialBackoff::builder()
+                .retry_bounds(Duration::from_millis(500), Duration::from_secs(20))
+                .build_with_max_retries(20),
+        )
+        .build(ClientConfig {
+            client_id: CLIENT_ID.clone(),
+            secret_key: SECRET_KEY.clone(),
+        })
 }
 
 async fn delete_existing_tenants(client: &Client) {
@@ -280,6 +289,52 @@ async fn test_tenants_and_users() {
             .unwrap();
         assert!(expected.difference(&actual).collect::<Vec<_>>().is_empty());
     }
+
+    // Ensure that listing users parts works for a variety of sizes.
+    let pages: Result<Vec<_>, Error> = client
+        .list_users_part(
+            UserListPartConfig::default()
+                .page_size(1)
+                .max_pages(1)
+                .starting_page(0),
+        )
+        .map_ok(|u| u.id)
+        .try_collect()
+        .await;
+    if let frontegg::Error::PaginationHault(v) = pages.as_ref().unwrap_err() {
+        assert_eq!(v, &1);
+    } else {
+        panic!("{:?} should be PaginationHault Error", pages);
+    };
+    // Page should go up
+    let pages: Result<Vec<_>, Error> = client
+        .list_users_part(
+            UserListPartConfig::default()
+                .page_size(1)
+                .max_pages(1)
+                .starting_page(1),
+        )
+        .map_ok(|u| u.id)
+        .try_collect()
+        .await;
+    if let frontegg::Error::PaginationHault(v) = pages.as_ref().unwrap_err() {
+        assert_eq!(v, &2);
+    } else {
+        panic!("{:?} should be PaginationHault Error", pages);
+    };
+
+    // Should act like normal stream if max not hit
+    let pages: Result<Vec<_>, Error> = client
+        .list_users_part(
+            UserListPartConfig::default()
+                .page_size(100)
+                .max_pages(100)
+                .starting_page(0),
+        )
+        .map_ok(|u| u.id)
+        .try_collect()
+        .await;
+    assert!(pages.is_ok());
 
     // Ensure that the user list can be filtered to a single tenant.
     {

@@ -26,6 +26,9 @@ pub enum Error {
     Transport(reqwest_middleware::Error),
     /// An error returned by the API.
     Api(ApiError),
+    /// A "error" a paginated response stream.
+    /// Holds the next page the stream can be resumed with.
+    PaginationHault(u64),
 }
 
 impl fmt::Display for Error {
@@ -33,6 +36,7 @@ impl fmt::Display for Error {
         match self {
             Error::Transport(e) => write!(f, "frontegg error: transport: {e}"),
             Error::Api(e) => write!(f, "frontegg error: api: {e}"),
+            Error::PaginationHault(e) => write!(f, "frontegg pagination haulted: next_page: {e}"),
         }
     }
 }

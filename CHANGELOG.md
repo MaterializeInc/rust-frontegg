@@ -9,6 +9,11 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.8.0] - 2025-05-28
+
+* Update rust 1.86.0
+* Add feature to request users in parts
+
 ## [0.7.0] - 2024-03-03
 
 * Update reqwest to 0.12.12

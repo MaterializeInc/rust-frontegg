@@ -62,6 +62,54 @@ impl UserListConfig {
     }
 }
 
+/// Configuration for the [`Client::list_users_part`] operation.
+#[derive(Debug, Clone)]
+pub struct UserListPartConfig {
+    tenant_id: Option<Uuid>,
+    page_size: u64,
+    max_pages: u64,
+    starting_page: Option<u64>,
+}
+
+impl Default for UserListPartConfig {
+    fn default() -> UserListPartConfig {
+        UserListPartConfig {
+            tenant_id: None,
+            page_size: 50,
+            max_pages: 100,
+            starting_page: None,
+        }
+    }
+}
+
+impl UserListPartConfig {
+    /// Sets the tenant ID to filter users to.
+    ///
+    /// If this method is not called, users for all tenants are returned.
+    pub fn tenant_id(mut self, tenant_id: Uuid) -> Self {
+        self.tenant_id = Some(tenant_id);
+        self
+    }
+
+    /// Sets the page size.
+    pub fn page_size(mut self, page_size: u64) -> Self {
+        self.page_size = page_size;
+        self
+    }
+
+    /// Sets the starting page
+    pub fn starting_page(mut self, starting_page: u64) -> Self {
+        self.starting_page = Some(starting_page);
+        self
+    }
+
+    /// Sets the max pages returned
+    pub fn max_pages(mut self, max_pages: u64) -> Self {
+        self.max_pages = max_pages;
+        self
+    }
+}
+
 /// The subset of [`User`] used in create requests.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -223,6 +271,41 @@ impl Client {
                 page += 1;
                 if page >= res.metadata.total_pages {
                     break;
+                }
+            }
+        }
+    }
+
+    /// List a portion of users, either for all tenants or for a single tenant.
+    ///
+    /// The underlying API call is paginated. The returned stream will fetch
+    /// additional pages as it is consumed starting at the starting_page and ending
+    /// once max_pages has been reached.
+    pub fn list_users_part(
+        &self,
+        config: UserListPartConfig,
+    ) -> impl Stream<Item = Result<User, Error>> + '_ {
+        try_stream! {
+            let mut page = config.starting_page.unwrap_or(0);
+            let hault_page = config.max_pages + page;
+            loop {
+                let mut req = self.build_request(Method::GET, USER_PATH);
+                if let Some(tenant_id) = config.tenant_id {
+                    req = req.tenant(tenant_id);
+                }
+                let req = req.query(&[
+                    ("_limit", &*config.page_size.to_string()),
+                    ("_offset", &*page.to_string())
+                ]);
+                let res: Paginated<User> = self.send_request(req).await?;
+                for user in res.items {
+                    yield user
+                }
+                page += 1;
+                if page >= res.metadata.total_pages {
+                    break;
+                } else if page >= hault_page {
+                    Err(Error::PaginationHault(page))?
                 }
             }
         }
