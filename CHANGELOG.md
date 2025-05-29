@@ -13,6 +13,8 @@ Versioning].
 
 ## [0.8.0] - 2025-05-29
 
+## [0.8.0] - 2025-05-29
+
 ## [0.8.0] - 2025-05-28
 
 * Update rust 1.86.0
@@ -66,6 +68,7 @@ Initial release.
 
 <!-- #release:next-url -->
 [Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.8.0...v0.8.0
 [0.8.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.8.0...v0.8.0
 [0.8.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.6.0...v0.8.0
 [0.6.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.5.0...v0.6.0
