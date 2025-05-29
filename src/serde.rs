@@ -57,7 +57,7 @@ pub mod nested_json {
         #[derive(Default)]
         struct NestedJson;
 
-        impl<'de> Visitor<'de> for NestedJson {
+        impl Visitor<'_> for NestedJson {
             type Value = serde_json::Value;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

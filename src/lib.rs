@@ -44,7 +44,8 @@ mod util;
 pub use client::roles::{Permission, Role};
 pub use client::tenants::{Tenant, TenantRequest};
 pub use client::users::{
-    CreatedUser, User, UserListConfig, UserRequest, WebhookTenantBinding, WebhookUser,
+    CreatedUser, User, UserListConfig, UserListPartConfig, UserRequest, WebhookTenantBinding,
+    WebhookUser,
 };
 pub use client::Client;
 pub use config::{ClientBuilder, ClientConfig};

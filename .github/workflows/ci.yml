@@ -16,16 +16,15 @@ jobs:
         include:
           - build: macos
             os: macos-latest
-            rust: 1.81.0
+            rust: 1.86.0
           - build: ubuntu
             os: ubuntu-latest
-            rust: 1.81.0
+            rust: 1.86.0
     steps:
     - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: ${{ matrix.rust }}
-        default: true
     - run: cargo test -- --test-threads=1
       env:
         FRONTEGG_CLIENT_ID: 50864121-dfcc-4847-aab5-d56a993cd696
@@ -36,10 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: 1.81.0
-        default: true
+        toolchain: 1.86.0
         components: rustfmt
     - run: cargo fmt -- --check
 
@@ -48,10 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: 1.81.0
-        default: true
+        toolchain: 1.86.0
         components: clippy
     - uses: actions-rs/clippy-check@v1
       with:
