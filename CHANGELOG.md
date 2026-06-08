@@ -9,6 +9,12 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+* Default the TLS backend to rustls with the aws-lc-rs provider, which links no
+  system OpenSSL. The `native-tls` feature is available for consumers that
+  prefer the system TLS stack.
+* Update reqwest to 0.13, reqwest-middleware to 0.5, and reqwest-retry to 0.9.
+* Raise the minimum supported Rust version to 1.88.0.
+
 ## [0.8.0] - 2025-05-28
 
 * Update rust 1.86.0
