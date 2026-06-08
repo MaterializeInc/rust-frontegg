@@ -9,6 +9,8 @@ Versioning].
 
 ## [Unreleased] <!-- #release:date -->
 
+## [0.9.0] - 2026-06-08
+
 * Default the TLS backend to rustls with the aws-lc-rs provider, which links no
   system OpenSSL. The `native-tls` feature is available for consumers that
   prefer the system TLS stack.
@@ -67,7 +69,8 @@ Versioning].
 Initial release.
 
 <!-- #release:next-url -->
-[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.6.0...v0.9.0
 [0.6.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MaterializeInc/rust-frontegg/compare/v0.3.0...v0.4.0
