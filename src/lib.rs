@@ -42,10 +42,10 @@ mod serde;
 mod util;
 
 pub use client::roles::{Permission, Role};
-pub use client::tenants::{Tenant, TenantRequest};
+pub use client::tenants::{Tenant, TenantRequest, TenantUpdateRequest};
 pub use client::users::{
-    CreatedUser, User, UserListConfig, UserListPartConfig, UserRequest, WebhookTenantBinding,
-    WebhookUser,
+    CreatedUser, User, UserListConfig, UserListPartConfig, UserRequest, UserV3,
+    WebhookTenantBinding, WebhookUser,
 };
 pub use client::Client;
 pub use config::{ClientBuilder, ClientConfig};

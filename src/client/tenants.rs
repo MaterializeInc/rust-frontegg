@@ -25,6 +25,7 @@ use crate::util::StrIteratorExt;
 use crate::{error, Client, Error};
 
 const TENANT_PATH: [&str; 4] = ["tenants", "resources", "tenants", "v1"];
+const TENANT_V2_PATH: [&str; 4] = ["tenants", "resources", "tenants", "v2"];
 
 /// The subset of [`Tenant`] used in create requests.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -40,6 +41,24 @@ pub struct TenantRequest<'a> {
     /// The name of the person who created the tenant.
     pub creator_name: Option<&'a str>,
     /// The email of the person who created the tenant.
+    pub creator_email: Option<&'a str>,
+}
+
+/// The subset of [`Tenant`] used in update requests.
+///
+/// Only fields that are set are sent to the API; omitted fields are left
+/// unchanged.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TenantUpdateRequest<'a> {
+    /// The new name of the tenant.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<&'a str>,
+    /// The new name of the person who created the tenant.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_name: Option<&'a str>,
+    /// The new email of the person who created the tenant.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub creator_email: Option<&'a str>,
 }
 
@@ -97,6 +116,22 @@ impl Client {
             status_code: StatusCode::NOT_FOUND,
             messages: vec!["Tenant not found".to_string()],
         }))
+    }
+
+    /// Updates a tenant by ID.
+    ///
+    /// Uses the v2 tenants API, which updates only the fields present in the
+    /// request body.
+    pub async fn update_tenant(
+        &self,
+        id: Uuid,
+        update: &TenantUpdateRequest<'_>,
+    ) -> Result<Tenant, Error> {
+        let req = self
+            .build_request(Method::PUT, TENANT_V2_PATH.chain_one(id))
+            .json(update);
+        let res = self.send_request(req).await?;
+        Ok(res)
     }
 
     /// Deletes a tenant by ID.

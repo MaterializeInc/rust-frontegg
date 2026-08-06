@@ -39,8 +39,8 @@ use uuid::Uuid;
 use wiremock::{matchers, Mock, MockServer, ResponseTemplate};
 
 use frontegg::{
-    ApiError, Client, ClientConfig, Error, TenantRequest, UserListConfig, UserListPartConfig,
-    UserRequest,
+    ApiError, Client, ClientConfig, Error, TenantRequest, TenantUpdateRequest, UserListConfig,
+    UserListPartConfig, UserRequest,
 };
 
 pub static CLIENT_ID: Lazy<String> =
@@ -133,6 +133,122 @@ async fn test_retries_with_mock_server() {
             ..Default::default()
         })
         .await;
+}
+
+/// Starts a mock Frontegg API server with an authentication handler
+/// registered, plus a client configured to target that server.
+async fn new_mock_server_and_client() -> (MockServer, Client) {
+    let server = MockServer::start().await;
+    let client = Client::builder()
+        .with_vendor_endpoint(server.uri().parse().unwrap())
+        .build(ClientConfig {
+            client_id: "".into(),
+            secret_key: "".into(),
+        });
+    let mock = Mock::given(matchers::path("/auth/vendor"))
+        .and(matchers::method("POST"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string("{\"token\":\"test\", \"expiresIn\":2687784526}"),
+        )
+        .named("auth");
+    server.register(mock).await;
+    (server, client)
+}
+
+/// Tests that `update_tenant` PUTs to the v2 tenants API and omits unset
+/// fields from the request body.
+#[test(tokio::test)]
+async fn test_update_tenant_with_mock_server() {
+    let (server, client) = new_mock_server_and_client().await;
+
+    let tenant_id = Uuid::new_v4();
+    // The exact body match ensures unset fields (creatorName, creatorEmail)
+    // are omitted from the payload rather than serialized as null, which
+    // would clear them.
+    let mock = Mock::given(matchers::method("PUT"))
+        .and(matchers::path(format!(
+            "/tenants/resources/tenants/v2/{tenant_id}"
+        )))
+        .and(matchers::body_json(json!({"name": "Acme Corporation"})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "tenantId": tenant_id,
+            "name": "Acme Corporation",
+            "metadata": "{}",
+            "creatorName": "creator",
+            "creatorEmail": "creator@acme.com",
+            "createdAt": "2026-08-06T00:00:00.000Z",
+            "updatedAt": "2026-08-06T00:00:00.000Z",
+            "deletedAt": null,
+        })))
+        .expect(1)
+        .named("update tenant");
+    server.register(mock).await;
+
+    let tenant = client
+        .update_tenant(
+            tenant_id,
+            &TenantUpdateRequest {
+                name: Some("Acme Corporation"),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(tenant.id, tenant_id);
+    assert_eq!(tenant.name, "Acme Corporation");
+}
+
+/// Tests that `get_user_by_email` queries the v3 users API with the `_email`
+/// filter and handles both the found and not-found cases.
+#[test(tokio::test)]
+async fn test_get_user_by_email_with_mock_server() {
+    let (server, client) = new_mock_server_and_client().await;
+
+    let user_id = Uuid::new_v4();
+    let tenant_id_1 = Uuid::new_v4();
+    let tenant_id_2 = Uuid::new_v4();
+    let mock = Mock::given(matchers::method("GET"))
+        .and(matchers::path("/identity/resources/users/v3"))
+        .and(matchers::query_param("_email", "user@acme.com"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "items": [{
+                "id": user_id,
+                "email": "user@acme.com",
+                "name": "Test User",
+                "tenantId": tenant_id_1,
+                "tenantIds": [tenant_id_1, tenant_id_2],
+                "createdAt": "2026-08-06T00:00:00.000Z",
+            }],
+            "_metadata": {"totalItems": 1, "totalPages": 1},
+        })))
+        .expect(1)
+        .named("get user by email");
+    server.register(mock).await;
+
+    let user = client
+        .get_user_by_email("user@acme.com")
+        .await
+        .unwrap()
+        .expect("user should be found");
+    assert_eq!(user.id, user_id);
+    assert_eq!(user.email, "user@acme.com");
+    assert_eq!(user.tenant_id, Some(tenant_id_1));
+    assert_eq!(user.all_tenant_ids(), vec![tenant_id_1, tenant_id_2]);
+
+    let mock = Mock::given(matchers::method("GET"))
+        .and(matchers::path("/identity/resources/users/v3"))
+        .and(matchers::query_param("_email", "missing@acme.com"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "items": [],
+            "_metadata": {"totalItems": 0, "totalPages": 0},
+        })))
+        .expect(1)
+        .named("get user by email (not found)");
+    server.register(mock).await;
+
+    let user = client.get_user_by_email("missing@acme.com").await.unwrap();
+    assert!(user.is_none());
 }
 
 /// Tests basic functionality of creating and retrieving tenants and users.

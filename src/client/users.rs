@@ -28,6 +28,7 @@ use crate::serde::{Empty, Paginated};
 use crate::util::StrIteratorExt;
 
 const USER_PATH: [&str; 4] = ["identity", "resources", "users", "v1"];
+const USER_V3_PATH: [&str; 4] = ["identity", "resources", "users", "v3"];
 const VENDOR_USER_PATH: [&str; 5] = ["identity", "resources", "vendor-only", "users", "v1"];
 
 /// Configuration for the [`Client::list_users`] operation.
@@ -220,6 +221,41 @@ pub struct User {
     pub created_at: OffsetDateTime,
 }
 
+/// A Frontegg user, as returned by the v3 users API.
+///
+/// The v3 API reports tenant membership as bare tenant IDs rather than the
+/// role-carrying bindings of [`User::tenants`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserV3 {
+    /// The ID of the user.
+    pub id: Uuid,
+    /// The email for the user.
+    pub email: String,
+    /// The name of the user.
+    pub name: Option<String>,
+    /// The ID of the user's active tenant.
+    pub tenant_id: Option<Uuid>,
+    /// The IDs of all tenants to which the user belongs.
+    #[serde(default)]
+    pub tenant_ids: Vec<Uuid>,
+    /// The time at which the user was created.
+    #[serde(with = "time::serde::rfc3339::option", default)]
+    pub created_at: Option<OffsetDateTime>,
+}
+
+impl UserV3 {
+    /// Returns the IDs of all tenants to which the user belongs, falling back
+    /// to the active tenant if the API omitted the full list.
+    pub fn all_tenant_ids(&self) -> Vec<Uuid> {
+        if !self.tenant_ids.is_empty() {
+            self.tenant_ids.clone()
+        } else {
+            self.tenant_id.into_iter().collect()
+        }
+    }
+}
+
 /// Binds a [`User`] to a [`Tenant`] for a `frontegg.user.*` webhook event
 ///
 /// [`Tenant`]: crate::client::tenants::Tenant
@@ -328,6 +364,22 @@ impl Client {
         let req = self.build_request(Method::GET, VENDOR_USER_PATH.chain_one(id));
         let res = self.send_request(req).await?;
         Ok(res)
+    }
+
+    /// Returns the user with the given email address, if one exists.
+    ///
+    /// Uses the v3 users API's `_email` filter, which is an exact match.
+    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserV3>, Error> {
+        #[derive(Debug, Deserialize)]
+        struct UserV3ListResponse {
+            items: Vec<UserV3>,
+        }
+
+        let req = self
+            .build_request(Method::GET, USER_V3_PATH)
+            .query(&[("_email", email)]);
+        let res: UserV3ListResponse = self.send_request(req).await?;
+        Ok(res.items.into_iter().next())
     }
 
     /// Deletes a user by ID.
